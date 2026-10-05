@@ -95,9 +95,10 @@ async function registerUser(
   const client = await pool.connect();
 
   try {
-    const userResult = await pool.query("SELECT * FROM users WHERE email=$1", [
-      email,
-    ]);
+    const userResult = await client.query(
+      "SELECT * FROM users WHERE email=$1",
+      [email],
+    );
 
     //εάν δεν υπάρχει ο χρήστης στην βάση τότε βγάλε σφάλμα 409 conflict
     if (userResult.rows.length !== 0) {
