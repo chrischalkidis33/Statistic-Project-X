@@ -55,9 +55,9 @@ async function getDBResponse(email, password) {
     email: user.email,
   };
 
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+  const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: "15min" });
 
-  return { token };
+  return { accessToken };
 }
 
 async function registerUser(
