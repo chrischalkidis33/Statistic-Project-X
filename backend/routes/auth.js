@@ -6,11 +6,11 @@ import { getDBResponse, registerUser } from "../services/authService.js";
 router.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    const { token } = await getDBResponse(email, password);
+    const { accessToken } = await getDBResponse(email, password);
 
     return res.status(200).json({
       message: "Connection succeeded",
-      token: token,
+      accessToken: accessToken,
     });
   } catch (err) {
     if (err.status) {
@@ -45,5 +45,7 @@ router.post("/api/register", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
+//μέθοδος που καλέιται κατά την ανανέωση του token
 
 export { router };

@@ -1,7 +1,11 @@
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import Joi from "joi";
 import { Pool } from "pg";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  hashToken,
+} from "../utils/token.js";
 
 //ρύθμιση της σύνδεσης με την postgreSQL
 const pool = new Pool({
@@ -49,15 +53,25 @@ async function getDBResponse(email, password) {
     throw createError(401, "Wrong email or password");
   }
 
-  //4. Έκδοση JWT Authentication Token
-  const payload = {
-    userId: user.id,
-    email: user.email,
+  const accessToken = generateAccessToken(user, JWT_SECRET);
+  const refreshToken = generateRefreshToken();
+  const tokenHash = tokenHash(refreshToken);
+  const familyId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await pool.query(
+    `
+      INSERT INTO refresh_tokens (user_id, family_id, token_hash, expires_at) 
+      VALUE ($1,$2,$3,$4)
+    `,
+    [user.id, familyId, tokenHash, expiresAt],
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+    user: { id: user.id, email: user.email },
   };
-
-  const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: "15min" });
-
-  return { accessToken };
 }
 
 async function registerUser(
