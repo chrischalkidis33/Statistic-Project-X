@@ -54,15 +54,15 @@ async function getDBResponse(email, password) {
   }
 
   const accessToken = generateAccessToken(user, JWT_SECRET);
-  const refreshToken = generateRefreshToken();
-  const tokenHash = tokenHash(refreshToken);
+  const refreshToken = generateRefreshToken(); //δημιουργεί ένα τυχαίο string 64 χαρακτήρων
+  const tokenHash = hashToken(refreshToken); //δημιουργεί hash string περιλαμβάνοντας το refresh token
   const familyId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   await pool.query(
     `
       INSERT INTO refresh_tokens (user_id, family_id, token_hash, expires_at) 
-      VALUE ($1,$2,$3,$4)
+      VALUES ($1,$2,$3,$4)
     `,
     [user.id, familyId, tokenHash, expiresAt],
   );
@@ -155,4 +155,96 @@ async function registerUser(
     client.release();
   }
 }
-export { getDBResponse, registerUser };
+
+async function refreshUser(refreshToken) {
+  //έλεγχος εάν υπάρχει το refresh token
+  if (!refreshToken) {
+    throw createError(401, "Refresh token mising");
+  }
+  //1. δημιουργία ξανά του hash token
+  const tokenHash = hashToken(refreshToken);
+  //2. έλεγχος στην βάση με το hash + έλεγχος εάν έχει λήξη
+  const result = await pool.query(
+    `SELECT rt.id, rt.user_id, rt.family_id, rt.used, rt.revoked, rt.expires_at, u.email
+   FROM refresh_tokens rt
+   JOIN users u ON u.id = rt.user_id
+   WHERE rt.token_hash = $1`,
+    [tokenHash],
+  );
+
+  if (result.rows.length === 0) {
+    throw createError(401, "Invalid refresh token");
+  }
+
+  const stored = result.rows[0];
+
+  //έλεγχος εάν το token έχει ξανα χρησιμοποιηθεί - Reuse detection
+  if (stored.used || stored.revoked) {
+    await pool.query(
+      `
+        UPDATE refresh_token SET revoked = true WHERE family_id = $1
+      `,
+      [stored.family_id],
+    );
+    throw createError(401, "Refresh token reuse detected");
+  }
+
+  //Έλεγχος εάν το token έχει λήξη
+  if (new Date(stored.expires_at) < new Date()) {
+    throw createError(401, "Refresh token expired");
+  }
+
+  //Rotation Μέσα σε transaction
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    //5.1 Ατομικό κατανάλωμα του παλιού token
+    const marked = await client.query(
+      `
+        UPDATE refresh_tokens
+        SET used = true
+        WHERE id = $1 AND used = false
+        RETURNING id
+      `,
+      [stored.id],
+    );
+
+    if (marked.rowCount === 0) {
+      throw createError(401, "Refresh token already used");
+    }
+
+    //5.2 Νέο refresh token (με ίδιο family id)
+    const newRefreshToken = generateRefreshToken();
+    const newTokenHash = hashToken(newRefreshToken);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    //αίτημα στην βάση και εισαγωγή του καινούριου refresh token
+    await pool.query(
+      `
+      INSERT INTO refresh_tokens (user_id, family_id, token_hash, expires_at) 
+      VALUES ($1,$2,$3,$4)
+    `,
+      [stored.user_id, stored.family_id, newTokenHash, expiresAt],
+    );
+
+    await client.query("COMMIT");
+
+    const accessToken = generateAccessToken(
+      {
+        id: stored.user_id,
+        email: stored.email,
+      },
+      JWT_SECRET,
+    );
+
+    return { accessToken, refreshToken: newRefreshToken };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    await client.release();
+  }
+}
+export { getDBResponse, registerUser, refreshUser };
