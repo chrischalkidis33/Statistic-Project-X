@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import Joi from "joi";
 import { Pool } from "pg";
 import {
@@ -11,9 +12,6 @@ import {
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
-
-//κλειδί για την υπογραφή του jwt (το κτρατάμε κρυφό στο .env)
-const JWT_SECRET = process.env.JWT_SECRET;
 
 //βοηθιτική function για custom errors με status code
 function createError(status, message) {
@@ -53,7 +51,7 @@ async function getDBResponse(email, password) {
     throw createError(401, "Wrong email or password");
   }
 
-  const accessToken = generateAccessToken(user, JWT_SECRET);
+  const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(); //δημιουργεί ένα τυχαίο string 64 χαρακτήρων
   const tokenHash = hashToken(refreshToken); //δημιουργεί hash string περιλαμβάνοντας το refresh token
   const familyId = crypto.randomUUID();
@@ -182,7 +180,7 @@ async function refreshUser(refreshToken) {
   if (stored.used || stored.revoked) {
     await pool.query(
       `
-        UPDATE refresh_token SET revoked = true WHERE family_id = $1
+        UPDATE refresh_tokens SET revoked = true WHERE family_id = $1
       `,
       [stored.family_id],
     );
@@ -221,7 +219,7 @@ async function refreshUser(refreshToken) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     //αίτημα στην βάση και εισαγωγή του καινούριου refresh token
-    await pool.query(
+    await client.query(
       `
       INSERT INTO refresh_tokens (user_id, family_id, token_hash, expires_at) 
       VALUES ($1,$2,$3,$4)
@@ -231,13 +229,10 @@ async function refreshUser(refreshToken) {
 
     await client.query("COMMIT");
 
-    const accessToken = generateAccessToken(
-      {
-        id: stored.user_id,
-        email: stored.email,
-      },
-      JWT_SECRET,
-    );
+    const accessToken = generateAccessToken({
+      id: stored.user_id,
+      email: stored.email,
+    });
 
     return { accessToken, refreshToken: newRefreshToken };
   } catch (err) {

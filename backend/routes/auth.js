@@ -52,7 +52,7 @@ router.post("/api/register", async (req, res) => {
     );
     return res.status(201).json({
       message: "Created",
-      token: newUser,
+      user: newUser,
     });
   } catch (err) {
     if (err.status) {

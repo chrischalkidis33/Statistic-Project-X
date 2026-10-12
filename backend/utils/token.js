@@ -1,6 +1,10 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-function generateAccessToken(user, JWT_SECRET) {
+
+//κλειδί για την υπογραφή του jwt (το κτρατάμε κρυφό στο .env)
+const JWT_SECRET = process.env.JWT_SECRET;
+
+function generateAccessToken(user) {
   //4. Έκδοση JWT Authentication Token
   const payload = {
     userId: user.id,
@@ -16,4 +20,14 @@ function generateRefreshToken() {
 function hashToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
-export { generateAccessToken, generateRefreshToken, hashToken };
+
+function verifyAccessToken(token) {
+  const user = jwt.verify(token, JWT_SECRET);
+  return user;
+}
+export {
+  generateAccessToken,
+  generateRefreshToken,
+  hashToken,
+  verifyAccessToken,
+};
