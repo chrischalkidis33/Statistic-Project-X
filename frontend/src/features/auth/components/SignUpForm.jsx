@@ -1,4 +1,6 @@
 import FormField from "../../../components/ui/FormField";
+//εισαγωγη του custom hook για πρόσβαση στον provider
+import { useAuth } from "../hook/useAuth";
 
 export default function SignUpForm({ onSwitch }) {
   const handleSubmit = (e) => {

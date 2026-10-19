@@ -1,9 +1,19 @@
+import { useState } from "react";
 import FormField from "../../../components/ui/FormField";
+import { useAuth } from "../hook/useAuth";
 
 export default function SignInForm({ onSwitch }) {
-  const handleSubmit = (e) => {
+  const { login, error } = useAuth();
+  const [email, setEmail] = useState();
+  const [password, setPassword] = useState();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // TODO: διασύνδεση με το API (δική σου υλοποίηση)
+    const msg = await login(email, password);
+    if (msg) {
+      console.log("Succeed");
+    }
   };
 
   return (
@@ -18,6 +28,8 @@ export default function SignInForm({ onSwitch }) {
         label="Email"
         type="email"
         name="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
         autoComplete="email"
         required
@@ -28,6 +40,8 @@ export default function SignInForm({ onSwitch }) {
         label="Password"
         type="password"
         name="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         placeholder="••••••••"
         autoComplete="current-password"
         required
