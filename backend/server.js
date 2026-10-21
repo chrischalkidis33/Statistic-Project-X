@@ -1,10 +1,18 @@
 import "./config/env.js";
 import express from "express";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import { router } from "./routes/auth.js";
 import { auth } from "./middleware/authMiddleware.js";
 
 const app = express();
+const corsSetup = {
+  origin: "http://localhost:5173",
+  method: ["GET", "POST", "DELETE", "PUT"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+app.use(cors(corsSetup));
 app.use(express.json());
 app.use(cookieParser());
 app.use(router);

@@ -11,7 +11,7 @@ function getAccessToken() {
 //Μια κοινή συνάρτηση για όλα τα requests
 async function request(path, { method = "GET", body } = {}) {
   const headers = {};
-  if (body) headers["Content-Type"] = "aplication/json";
+  if (body) headers["Content-Type"] = "application/json";
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   const res = await fetch(`${API}${path}`, {
