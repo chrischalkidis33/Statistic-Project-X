@@ -46,16 +46,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   //Μέθοδος που καλεί το call για το register
-  const register = useCallback(async (fields) => {
-    setError(null);
-    try {
-      await authService.register(fields);
-      return true;
-    } catch (err) {
-      setError(err.message);
-      return false;
-    }
-  }, []);
+  //Προς το παρόν δεν χρησιμοποιείται και καλείτε απευθείας από το SignUpForm
+  // const register = useCallback(async (fields) => {
+  //   setError(null);
+  //   try {
+  //     await authService.register(fields);
+  //     return true;
+  //   } catch (err) {
+  //     setError(err.message);
+  //     return false;
+  //   }
+  // }, []);
 
   //Μέθοδος που καλέι το Logout. Δεν την έχω υλοποιήση ακόμα
   // const logout = useCallback(async () => {
@@ -68,8 +69,8 @@ export function AuthProvider({ children }) {
 
   // Ίδιο object αν δεν άλλαξε τίποτα → λιγότερα περιττά re-renders
   const value = useMemo(
-    () => ({ user, loading, error, login, register }),
-    [user, loading, error, login, register],
+    () => ({ user, loading, error, login }),
+    [user, loading, error, login],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

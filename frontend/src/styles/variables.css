@@ -1,19 +1,24 @@
 :root {
-  /* Color Hunt palette, αυστηρά αυτά τα 4 χρώματα */
-  --color-bg: #37353e;
-  --color-surface: #44444e;
-  --color-accent: #715a5a;
-  --color-text: #d3dad9;
+  /* Color Hunt palette (light), αυστηρά αυτά τα 4 χρώματα */
+  --color-bg: #f9f3ef;
+  --color-surface: #d2c1b6;
+  --color-accent: #456882;
+  --color-text: #1b3c53;
 
   /* Παράγωγα με διαφάνεια (ίδια χρώματα, όχι νέα) */
-  --color-text-muted: rgb(211 218 217 / 0.7);
-  --color-border: rgb(211 218 217 / 0.15);
+  --color-text-muted: rgb(27 60 83 / 0.7);
+  --color-border: rgb(27 60 83 / 0.15);
+
+  /* Νέα: το κείμενο πάνω στο accent πρέπει να είναι ανοιχτό,
+     γιατί το --color-text είναι πια σκούρο */
+  --color-on-accent: #f9f3ef;
+  --color-accent-soft: rgb(69 104 130 / 0.35); /* δαχτυλίδι focus */
 
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
 
-  --shadow: 0 20px 40px rgb(0 0 0 / 0.25);
+  --shadow: 0 20px 40px rgb(27 60 83 / 0.15);
 
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }

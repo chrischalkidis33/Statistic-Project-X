@@ -1,11 +1,27 @@
+import { useState } from "react";
 import FormField from "../../../components/ui/FormField";
 //εισαγωγη του custom hook για πρόσβαση στον provider
-import { useAuth } from "../hook/useAuth";
+import { register } from "../../../services/authService";
 
 export default function SignUpForm({ onSwitch }) {
-  const handleSubmit = (e) => {
+  //δεδομένα για την διαχείριση του register
+  const [fullName, setFullName] = useState();
+  const [email, setEmail] = useState();
+  const [password, setPassword] = useState();
+  const [companyName, setCompanyName] = useState();
+  const [location, setLocation] = useState();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // TODO: διασύνδεση με το API (δική σου υλοποίηση)
+    const msg = await register({
+      email,
+      password,
+      fullName,
+      companyName,
+      location,
+    });
+    if (msg) console.log("Succesfull registration");
   };
 
   return (
@@ -21,6 +37,8 @@ export default function SignUpForm({ onSwitch }) {
         name="fullName"
         placeholder="Your name"
         autoComplete="name"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
         required
       />
 
@@ -31,6 +49,8 @@ export default function SignUpForm({ onSwitch }) {
         name="email"
         placeholder="you@example.com"
         autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         required
       />
 
@@ -43,6 +63,8 @@ export default function SignUpForm({ onSwitch }) {
           placeholder="••••••••"
           autoComplete="new-password"
           minLength={8}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
         />
         <FormField
@@ -56,6 +78,28 @@ export default function SignUpForm({ onSwitch }) {
           required
         />
       </div>
+
+      <FormField
+        id="signup-name"
+        label="Company name"
+        name="companyName"
+        placeholder="Your company name"
+        autoComplete="company"
+        value={companyName}
+        onChange={(e) => setCompanyName(e.target.value)}
+        required
+      />
+
+      <FormField
+        id="signup-name"
+        label="Location"
+        name="location"
+        placeholder="Your location"
+        autoComplete="location"
+        value={location}
+        onChange={(e) => setLocation(e.target.value)}
+        required
+      />
 
       <label className="check">
         <input type="checkbox" name="acceptTerms" required />

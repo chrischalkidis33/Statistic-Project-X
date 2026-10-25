@@ -44,11 +44,19 @@ export async function login(email, password) {
 export async function register({
   email,
   password,
-  first_name,
-  last_name,
+  fullName,
   company_name,
   location,
 }) {
+  //έλεγχος και διαχωρισμός του fullname σε fistName και lastName
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2 || parts[0] === "") {
+    return null;
+  }
+
+  const [first_name, ...rest] = parts;
+  const last_name = rest.join(" ");
+
   return await request("/register", {
     method: "POST",
     body: { email, password, first_name, last_name, company_name, location },
