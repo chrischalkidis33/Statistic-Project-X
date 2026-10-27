@@ -1,9 +1,12 @@
 import { useState } from "react";
 import FormField from "../../../components/ui/FormField";
 //εισαγωγη του custom hook για πρόσβαση στον provider
-import { register } from "../../../services/authService";
+import { useAuth } from "../hook/useAuth";
+//import { register } from "../../../services/authService";
 
 export default function SignUpForm({ onSwitch }) {
+  //δεδομένα για την register & error από τον provider
+  const { register, error } = useAuth();
   //δεδομένα για την διαχείριση του register
   const [fullName, setFullName] = useState();
   const [email, setEmail] = useState();
