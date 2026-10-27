@@ -1,12 +1,18 @@
 import { useState } from "react";
+import { useAuth } from "./hook/useAuth";
 import SignInForm from "./components/SignInForm";
 import SignUpForm from "./components/SignUpForm";
+import Dashboard from "../dashboard/Dashboard";
+
 import "./AuthPage.css";
 
 export default function AuthPage() {
+  const { isAuth } = useAuth();
   const [mode, setMode] = useState("signin"); // 'signin' | 'signup'
 
-  return (
+  return isAuth ? (
+    <Dashboard />
+  ) : (
     <main className="auth">
       {/* Brand panel: εμφανίζεται από 900px και πάνω */}
       <aside className="auth__aside">

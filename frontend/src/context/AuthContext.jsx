@@ -13,6 +13,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); //true μέχρι να ξέρουμε εάν υπάρχει session
   const [error, setError] = useState(null);
+  const [isAuth, setIsAuth] = useState(false);
 
   //Στην εκκίνηση: υπάρχει ήδη session (cookie);
   useEffect(() => {
@@ -21,7 +22,10 @@ export function AuthProvider({ children }) {
     authService
       .refresh()
       .then((u) => {
-        if (!cancelled) setUser(u);
+        if (!cancelled) {
+          setUser(u);
+          //setIsAuth(true);
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -38,6 +42,7 @@ export function AuthProvider({ children }) {
     try {
       const u = await authService.login(email, password);
       setUser(u);
+      setIsAuth(true);
       return true;
     } catch (err) {
       setError(err.message);
@@ -69,8 +74,8 @@ export function AuthProvider({ children }) {
 
   // Ίδιο object αν δεν άλλαξε τίποτα → λιγότερα περιττά re-renders
   const value = useMemo(
-    () => ({ user, loading, error, login, register }),
-    [user, loading, error, login, register],
+    () => ({ user, loading, error, login, register, isAuth }),
+    [user, loading, error, login, register, isAuth],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
