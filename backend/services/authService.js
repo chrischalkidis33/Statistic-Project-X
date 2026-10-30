@@ -159,50 +159,74 @@ async function refreshUser(refreshToken) {
   if (!refreshToken) {
     throw createError(401, "Refresh token mising");
   }
-  //1. δημιουργία ξανά του hash token
-  const tokenHash = hashToken(refreshToken);
-  //2. έλεγχος στην βάση με το hash + έλεγχος εάν έχει λήξη
-  const result = await pool.query(
-    `SELECT rt.id, rt.user_id, rt.family_id, rt.used, rt.revoked, rt.expires_at, u.email
-   FROM refresh_tokens rt
-   JOIN users u ON u.id = rt.user_id
-   WHERE rt.token_hash = $1`,
-    [tokenHash],
-  );
-
-  if (result.rows.length === 0) {
-    throw createError(401, "Invalid refresh token");
-  }
-
-  const stored = result.rows[0];
-
-  //έλεγχος εάν το token έχει ξανα χρησιμοποιηθεί - Reuse detection
-  if (stored.used || stored.revoked) {
-    await pool.query(
-      `
-        UPDATE refresh_tokens SET revoked = true WHERE family_id = $1
-      `,
-      [stored.family_id],
-    );
-    throw createError(401, "Refresh token reuse detected");
-  }
-
-  //Έλεγχος εάν το token έχει λήξη
-  if (new Date(stored.expires_at) < new Date()) {
-    throw createError(401, "Refresh token expired");
-  }
-
   //Rotation Μέσα σε transaction
   const client = await pool.connect();
-
+  //Το flag για το transaction. Δήλωσέ το πριν το try
+  let inTransaction = false;
   try {
     await client.query("BEGIN");
+    inTransaction = true;
+    //1. δημιουργία ξανά του hash token
+    const tokenHash = hashToken(refreshToken);
+    //2. έλεγχος στην βάση με το hash + έλεγχος εάν έχει λήξη
+    const result = await client.query(
+      `SELECT rt.id, rt.user_id, rt.family_id, rt.used, rt.used_at, rt.revoked, rt.expires_at, u.email
+        FROM refresh_tokens rt
+        JOIN users u ON u.id = rt.user_id
+        WHERE rt.token_hash = $1
+        FOR UPDATE OF rt`,
+      [tokenHash],
+    );
+
+    if (result.rows.length === 0) {
+      throw createError(401, "Invalid refresh token");
+    }
+
+    const stored = result.rows[0];
+
+    //έλεγχος εάν το token έχει ξανα χρησιμοποιηθεί - Reuse detection
+    const GRACE_MS = 10 * 1000; //Παράθυρο ανοχής: 10 δευτερόλεπτα
+
+    //1. Ήδη ακυρωμένη οικογλενεια: πάντα 401 , δεν χρειάζεται νέο Update
+    if (stored.revoked) {
+      throw createError(401, "Refresh token revoked");
+    }
+
+    //2. Token που έχει ήδη χρησιμοποιηθεί
+    if (stored.used) {
+      const msSinceUse = stored.used_at
+        ? Date.now() - new Date(stored.used_at).getTime()
+        : Infinity; // παλιές γραμμες χωρίς used_at θεωρούνται reused
+
+      if (msSinceUse < GRACE_MS) {
+        //Αθώα διπλή κλήση: 401 χωρίς revoke και χωρίς να σβηστεί το cookie
+        const err = createError(401, "Refresh already in progress");
+        err.keepCookie = true;
+        throw err;
+      }
+
+      //Πραγματικό reuse: ακύρωση οικογένειας και COMMIT πριν το throw
+      await client.query(
+        `
+        UPDATE refresh_tokens SET revoked = true WHERE family_id = $1
+        `,
+        [stored.family_id],
+      );
+      await client.query("COMMIT");
+      inTransaction = false;
+      throw createError(401, "Refresh token reuse detected");
+    }
+
+    //Έλεγχος εάν το token έχει λήξη
+    if (new Date(stored.expires_at) < new Date()) {
+      throw createError(401, "Refresh token expired");
+    }
 
     //5.1 Ατομικό κατανάλωμα του παλιού token
     const marked = await client.query(
       `
         UPDATE refresh_tokens
-        SET used = true
+        SET used = true, used_at = now()
         WHERE id = $1 AND used = false
         RETURNING id
       `,
@@ -234,9 +258,13 @@ async function refreshUser(refreshToken) {
       email: stored.email,
     });
 
-    return { accessToken, refreshToken: newRefreshToken };
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      user: { id: stored.user_id, email: stored.email },
+    };
   } catch (err) {
-    await client.query("ROLLBACK");
+    if (inTransaction) await client.query("ROLLBACK");
     throw err;
   } finally {
     await client.release();

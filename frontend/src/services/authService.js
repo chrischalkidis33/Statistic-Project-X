@@ -73,14 +73,22 @@ export async function register({
 // }
 
 //Η μέθοδος για το refresh. Εκτελείτε στην εκκίνηση της εφαρμογής
-export async function refresh() {
-  try {
-    const data = await request("/refresh", { method: "POST" });
-    accessToken = data.accessToken;
-    return data.user;
-  } catch (err) {
-    accessToken = null;
-    if (err.status === 401) return null; // απλά δεν έχει session
-    throw err;
-  }
+//Μεταβλητή που μας ενημερ'ωνει εάν υπάρχει κάποια κλήση refresh σε εξέλιξη
+let refreshPromise = null;
+export function refresh() {
+  if (refreshPromise) return refreshPromise; //υπάρχει ήδη κάποια κλήση σε εξέλιξη
+  refreshPromise = (async () => {
+    try {
+      const data = await request("/refresh", { method: "POST" });
+      accessToken = data.accessToken;
+      return data.user;
+    } catch (err) {
+      accessToken = null;
+      if (err.status === 401) return null; // απλά δεν έχει session
+      throw err;
+    } finally {
+      refreshPromise = null; //έτοιμο για την επόμενη φορά
+    }
+  })();
+  return refreshPromise;
 }

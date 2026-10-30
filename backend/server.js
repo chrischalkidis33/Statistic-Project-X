@@ -8,7 +8,7 @@ import { auth } from "./middleware/authMiddleware.js";
 const app = express();
 const corsSetup = {
   origin: "http://localhost:5173",
-  method: ["GET", "POST", "DELETE", "PUT"],
+  methods: ["GET", "POST", "DELETE", "PUT"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };

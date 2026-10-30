@@ -71,7 +71,7 @@ router.post("/api/refresh", async (req, res) => {
       return res.status(401).json({ message: "Refresh token missing" });
     }
 
-    const { accessToken, refreshToken } = await refreshUser(refToken);
+    const { accessToken, refreshToken, user } = await refreshUser(refToken);
 
     //ανανεώνουμε το refresh token στο HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
@@ -85,10 +85,11 @@ router.post("/api/refresh", async (req, res) => {
     return res.status(200).json({
       message: "Connection succeeded",
       accessToken: accessToken,
+      user: user,
     });
   } catch (err) {
     if (err.status) {
-      if (err.status === 401) {
+      if (err.status === 401 && !err.keepCookie) {
         res.clearCookie("refreshToken", {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
