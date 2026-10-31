@@ -1,0 +1,40 @@
+.barchart__list {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.barchart__row {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr 44px;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.barchart__track {
+  height: 14px;
+}
+.barchart__bar {
+  height: 100%;
+  background: var(--chart-1);
+  border-radius: 0 4px 4px 0;
+  transition: width 0.4s ease;
+}
+.barchart__value {
+  font-weight: 700;
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .barchart__row {
+    grid-template-columns: 1fr 44px;
+  }
+  .barchart__name {
+    grid-column: 1 / -1;
+  }
+  .barchart__track {
+    grid-column: 1;
+  }
+}

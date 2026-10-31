@@ -1,0 +1,22 @@
+.dashboard {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: var(--nav-height) 1fr auto;
+  grid-template-areas:
+    "nav nav"
+    "side main"
+    "footer footer";
+}
+
+@media (max-width: 900px) {
+  .dashboard {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--nav-height) auto 1fr auto;
+    grid-template-areas:
+      "nav"
+      "side"
+      "main"
+      "footer";
+  }
+}

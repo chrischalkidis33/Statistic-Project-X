@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
       .then((u) => {
         if (!cancelled) {
           setUser(u);
-          setIsAuth(true);
+          //setIsAuth(true);
         }
       })
       .catch(() => {})
