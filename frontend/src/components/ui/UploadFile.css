@@ -1,0 +1,287 @@
+/* ---------- Modal overlay ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(27 60 83 / 0.55);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+  animation: modal-fade 0.15s ease-out;
+}
+
+[data-theme="dark"] .modal {
+  background: rgb(0 0 0 / 0.6);
+}
+
+/* ---------- Παράθυρο ---------- */
+.upload {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  animation: modal-pop 0.18s ease-out;
+}
+
+.upload__head {
+  padding-right: 32px; /* χώρος για το κουμπί κλεισίματος */
+}
+.upload__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.upload__subtitle {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.upload__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+.upload__close:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+/* ---------- Dropzone ---------- */
+.upload__zone {
+  position: relative;
+}
+
+/* κρυφό αλλά προσβάσιμο με πληκτρολόγιο */
+.upload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  background: var(--color-bg);
+  border: 2px dashed var(--color-accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.upload__dropzone:hover,
+.upload__dropzone.is-dragover {
+  background: var(--color-accent-soft);
+}
+
+.upload__input:focus-visible + .upload__dropzone {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.upload__icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.upload__text {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.upload__link {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+.upload__hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Λίστα αρχείων ---------- */
+.upload__files {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload__file {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.upload__file-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.upload__file-info {
+  flex: 1;
+  min-width: 0;
+}
+.upload__file-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upload__file-meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.upload__progress {
+  margin-top: 8px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+.upload__progress-bar {
+  height: 100%;
+  background: var(--chart-1);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.upload__remove {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+.upload__remove:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+/* ---------- Κουμπιά ---------- */
+.upload__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.upload__btn {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition:
+    filter 0.15s,
+    background 0.15s;
+}
+.upload__btn--ghost {
+  border: 1px solid var(--color-border);
+}
+.upload__btn--ghost:hover {
+  background: var(--color-accent-soft);
+}
+
+.upload__btn--primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.upload__btn--primary:hover {
+  filter: brightness(1.1);
+}
+.upload__btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* ---------- Animations ---------- */
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal,
+  .upload {
+    animation: none;
+  }
+}
+
+/* ---------- Responsive: bottom sheet στο κινητό ---------- */
+@media (max-width: 640px) {
+  .modal {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .upload {
+    max-width: none;
+    max-height: 90vh;
+    padding: 16px;
+    gap: 16px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .upload__dropzone {
+    padding: 28px 12px;
+  }
+  .upload__actions {
+    flex-direction: column-reverse;
+  }
+  .upload__btn {
+    width: 100%;
+  }
+}

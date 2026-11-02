@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
+import UploadFile from "./UploadFile";
 import { Search, Upload, Bell, Moon, Sun } from "lucide-react";
 import "./Nav.css";
 
 function getInitialTheme() {
   const saved = localStorage.getItem("theme");
   if (saved === "light" || saved === "dark") return saved;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 export default function Nav() {
   const [query, setQuery] = useState("");
   const [theme, setTheme] = useState(getInitialTheme);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -37,7 +41,7 @@ export default function Nav() {
       </label>
 
       <div className="nav__actions">
-        <button className="nav__upload">
+        <button className="nav__upload" onClick={() => setUploadOpen(true)}>
           <Upload size={16} />
           <span>Upload Excel</span>
         </button>
@@ -45,7 +49,9 @@ export default function Nav() {
         <button
           className="nav__icon-btn"
           onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={
+            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
           title={theme === "dark" ? "Light mode" : "Dark mode"}
         >
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -60,6 +66,8 @@ export default function Nav() {
           <span className="nav__profile-name">Demo User</span>
         </button>
       </div>
+
+      <UploadFile isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />
     </header>
   );
 }

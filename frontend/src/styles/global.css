@@ -15,7 +15,9 @@ body {
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-bg);
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 h1,
