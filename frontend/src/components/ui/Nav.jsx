@@ -1,8 +1,24 @@
-import { useState } from "react";
-import { Search, Upload, Bell } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Upload, Bell, Moon, Sun } from "lucide-react";
 import "./Nav.css";
+
+function getInitialTheme() {
+  const saved = localStorage.getItem("theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export default function Nav() {
-  const [query, setQuery] = useState(""); //αυτό το query αφορά το search
+  const [query, setQuery] = useState("");
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
   return (
     <header className="nav">
       <div className="nav__logo">
@@ -24,6 +40,15 @@ export default function Nav() {
         <button className="nav__upload">
           <Upload size={16} />
           <span>Upload Excel</span>
+        </button>
+
+        <button
+          className="nav__icon-btn"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={theme === "dark" ? "Light mode" : "Dark mode"}
+        >
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
         <button className="nav__icon-btn" aria-label="Notifications">
