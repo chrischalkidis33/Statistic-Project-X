@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { router } from "./routes/auth.js";
+import { dataRouter } from "./routes/data.js";
 import { auth } from "./middleware/authMiddleware.js";
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(cors(corsSetup));
 app.use(express.json());
 app.use(cookieParser());
 app.use(router);
+app.use(dataRouter); //καινούριο για το upload files endpoint
 
 app.get("/api/me", auth, (req, res) => {
   res.json({ userId: req.user.userId }); //πρέπει να δω λίγο τα πεδία που πρέπει να βάλω εάν είναι σωστά
