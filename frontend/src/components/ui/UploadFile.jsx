@@ -1,9 +1,39 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { UploadCloud, FileSpreadsheet, X } from "lucide-react";
+import { uploadFiles } from "../../services/dataService";
 import "./UploadFile.css";
 
 export default function UploadFile({ isOpen, onClose }) {
+  //στατε για την αποθήκευση του αρχείου
+  const [dataFile, setDataFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  //μέθοδος που αποθηκέυουμε το αρχείο στο state
+  function handleFileUpload(e) {
+    if (e.target.files) {
+      setDataFile(e.target.files[0]);
+      setMessage("");
+    }
+  }
+
+  async function onFileUpload() {
+    if (!dataFile) {
+      setMessage("Please select a file first");
+      return;
+    }
+
+    try {
+      await uploadFiles(dataFile);
+      setMessage("Το αρχείο ανέβηκε με επιτυχία");
+      setDataFile(null);
+    } catch (error) {
+      setMessage("Αποτυχία μεταφόρτωσης αρχείου.");
+    } finally {
+      setLoading(false);
+    }
+  }
   // Κλείσιμο με Escape + κλείδωμα του scroll της σελίδας
   useEffect(() => {
     if (!isOpen) return;
@@ -31,7 +61,10 @@ export default function UploadFile({ isOpen, onClose }) {
       >
         <button
           className="upload__close"
-          onClick={onClose}
+          onClick={() => {
+            onClose();
+            setDataFile(null);
+          }}
           aria-label="Κλείσιμο"
         >
           <X size={18} />
@@ -42,7 +75,15 @@ export default function UploadFile({ isOpen, onClose }) {
             Upload Excel
           </h2>
           <p className="upload__subtitle">
-            Ανέβασε ένα αρχείο για να ενημερωθούν τα στατιστικά του dashboard.
+            {dataFile ? (
+              <>
+                <span>File name: {dataFile.name}</span>
+                <span>Size: {(dataFile.size / 1024).toFixed(2)}KB</span>
+                <span>Type: {dataFile.type}</span>
+              </>
+            ) : (
+              "Ανέβασε ένα αρχείο για να ενημερωθούν τα στατιστικά του dashboard."
+            )}
           </p>
         </header>
 
@@ -52,20 +93,29 @@ export default function UploadFile({ isOpen, onClose }) {
             className="upload__input"
             type="file"
             accept=".xlsx,.xls,.csv"
+            onChange={handleFileUpload}
           />
           <label htmlFor="upload-input" className="upload__dropzone">
             <span className="upload__icon">
               <UploadCloud size={28} />
             </span>
             <span className="upload__text">
-              Σύρε το αρχείο εδώ ή{" "}
-              <span className="upload__link">διάλεξε από τον υπολογιστή</span>
+              {dataFile ? (
+                dataFile.name
+              ) : (
+                <>
+                  <span>Σύρε το αρχείο εδώ ή </span>
+                  <span className="upload__link">
+                    διάλεξε από τον υπολογιστή
+                  </span>
+                </>
+              )}
             </span>
             <span className="upload__hint">.xlsx, .xls ή .csv · έως 10 MB</span>
           </label>
         </div>
 
-        <ul className="upload__files">
+        {/* <ul className="upload__files">
           <li className="upload__file">
             <span className="upload__file-icon">
               <FileSpreadsheet size={20} />
@@ -82,17 +132,32 @@ export default function UploadFile({ isOpen, onClose }) {
               </div>
             </div>
 
-            <button className="upload__remove" aria-label="Αφαίρεση αρχείου">
+            <button
+              className="upload__remove"
+              aria-label="Αφαίρεση αρχείου"
+              onClick={() => setDataFile(null)}
+            >
               <X size={16} />
             </button>
           </li>
-        </ul>
+        </ul> */}
 
         <footer className="upload__actions">
-          <button className="upload__btn upload__btn--ghost" onClick={onClose}>
+          <button
+            className="upload__btn upload__btn--ghost"
+            onClick={() => {
+              onClose();
+              setDataFile(null);
+            }}
+          >
             Ακύρωση
           </button>
-          <button className="upload__btn upload__btn--primary">Upload</button>
+          <button
+            className="upload__btn upload__btn--primary"
+            onClick={onFileUpload}
+          >
+            Upload
+          </button>
         </footer>
       </section>
     </div>,

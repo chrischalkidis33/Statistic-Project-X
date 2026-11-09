@@ -1,4 +1,5 @@
-const API = "http://localhost:5000/api";
+import { API_URL } from "../config.js";
+
 // Το access token μένει σε ref: δεν χρειάζεται να ξανα-ζωγραφίζει
 // τα components όταν αλλάζει, και δεν αποθηκεύεται πουθενά μόνιμα.
 // Το access token ζει μόνο στην μνήμη του module
@@ -14,7 +15,7 @@ async function request(path, { method = "GET", body } = {}) {
   if (body) headers["Content-Type"] = "application/json";
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     method,
     headers,
     credentials: "include", //στέλνει/δέχεται το refresh cookie
