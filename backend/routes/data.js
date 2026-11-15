@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
 
 //Έλεγχος εάν ο χρήστης έχει ανεβάσει μόνο αρχείο xlsx η xls κλπ
 const fileFilter = (req, file, cb) => {
-  const allowed = /\.(xlsx|xls|xlsm)$/i;
+  const allowed = /\.(xlsx|xlsm)$/i;
   if (allowed.test(file.originalname)) {
     cb(null, true);
   } else {
@@ -50,7 +50,7 @@ const upload = multer({
 dataRouter.post(
   "/api/upload",
   auth,
-  upload.array("files", 5),
+  upload.array("myFile", 5), //το όνομα εδώ να είναι ίδιο με αυτό που βάλαμε στο formData στο front end
   async (req, res) => {
     try {
       //έλεγχος εάν το αρχείο δεν υπάρχει ή είναι κενό
@@ -61,8 +61,13 @@ dataRouter.post(
       //καλούμε το service για την αποθήκευση των δεδομένω στην βάση και ολόκληρης της δουλειάς για τα δεδομένα
       const result = await uploadFiles(req.files, req.user);
 
+      //έλεγχος του αποτελέσματος
+      if (result) {
+        console.log("Τα αρχεία ανέβηκαν με επιτυχία");
+      }
+
       return res.status(200).json({
-        message: "Τα αρχεία ανέβηκαν με απιτυχία",
+        message: "Τα αρχεία ανέβηκαν με επιτυχία",
         files: result,
       });
     } catch (err) {

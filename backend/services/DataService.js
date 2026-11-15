@@ -1,7 +1,13 @@
 import ExcelJS from "exceljs";
-//import path from "path";
+import path from "path";
 import fs from "fs/promises";
-import { Pool } from "pg";
+import {
+  insertData,
+  totalRevenue,
+  sumOrder,
+  avgRevenueOrders,
+  bestClient,
+} from "../utils/dataCalculation";
 
 /**
  * Επεξεργάζεται τα uploaded excel αρχεία
@@ -14,7 +20,15 @@ async function uploadFiles(files, user) {
     try {
       //Διαβάζουμε το αρχείο excel
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(file.path);
+      const ext = path.extname(file.originalname).toLowerCase();
+
+      if (ext === ".csv") {
+        await workbook.csv.readFile(file.path);
+      } else if (ext === ".xlsx") {
+        await workbook.xlsx.readFile(file.path);
+      } else {
+        throw new Error(`Μη υποστηριζόμενο αρχείο: ${ext}`);
+      }
 
       //παίρνουμε το πρώτο sheet
       const worksheet = workbook.worksheets[0];
@@ -26,33 +40,68 @@ async function uploadFiles(files, user) {
 
       //μετατροπή σε πίνακα αντικειμένων
       //υποθέτουμε ότι η πρώτη γραμμή είναι οι κεφαλίδες των δεδομένων μας
-      const data = [];
-      const headers = [];
+      const data = []; //τα δεδομένα του αρχείου
+      const headers = []; //οι κεφαλίδες του βιβλίου
 
       worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
         if (rowNumber === 1) {
-          //κεφαλίδες αρχείου
-          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-            headers[colNumber] =
-              cell.value?.toString()?.trim() || `col_${colNumber}`;
+          //1. Διαβάζουμε μόνο τα κελιά της πρώτης γραμμής τα οποία έχουν τιμή
+          row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+            const headerText = cell.value?.toString()?.trim();
+            if (headerText) {
+              headers[colNumber] = headerText;
+            }
           });
         } else {
           //δεδομένα αρχείου
           const rowData = {};
-          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-            //includeEmpty: true για να συμπεριλάβει και τα κενά κελιά
-            const header = headers[colNumber];
+          let hasAnyRealValue = false; //flag για αγνόηση κενών κελιών
+          //2. Κάνουμε loop μόνο τις στήλες που που έχουν οριστεί στο header
+          headers.forEach((header, colNumber) => {
+            if (!header) return; //αγνούμε τυχόν ενδιάμεσες κενές στήλες
+
+            //Ζητάμε το κελί της συγκεκριμένης στήλης ακόμα και εάν είναι άδειο
+            const cell = row.getCell(colNumber);
             let cellValue = cell.value;
-            if (header) {
-              if (typeof cellValue === "object") {
+            //3.Διαχείριση ειδικών αντικειμένων του ExcelJS (Τύποι, RichText, Ημερομηνίες)
+            if (
+              cellValue !== null &&
+              cellValue !== undefined &&
+              typeof cellValue === "object"
+            ) {
+              if (cellValue instanceof Date) {
+                //Διατηρούμε την ημερομηνία ως έχει
+                cellValue = cellValue.toLocaleDateString("el-GR");
+              } else if (cellValue.result !== undefined) {
+                //Περίπτωση μαθηματικού τύπου
                 cellValue = cellValue.result;
               } else if (cellValue.text !== undefined) {
+                //Περίπτωση Hyperlink ή απλού text object
                 cellValue = cellValue.text;
+              } else if (Array.isArray(cellValue.richText)) {
+                //Περίπτωση μορφοποιημένου κειμένου (Rich Text)
+                cellValue = cellValue.richText.map((rt) => rt.text).join("");
+              } else {
+                cellValue = "";
               }
             }
-            rowData[header] = cellValue !== undefined ? cellValue : null;
+            //4. Έλεγχος αν το κελί είναι κενό και εφαρμογή της εξαίρεσης
+            if (
+              cellValue === null ||
+              cellValue === undefined ||
+              cellValue === ""
+            ) {
+              rowData[header] = " ";
+            } else {
+              rowData[header] = cellValue;
+              hasAnyRealValue = true; // βρήκαμε έστω και μια πραγματική τιμή στην γραμμή
+            }
           });
-          data.push(rowData);
+
+          //5. Αποθηκεύουμε την γραμμή ΜΟΝΟ αν έχει έστω και ένα κελί με πραγματική τιμή
+          if (hasAnyRealValue) {
+            data.push(rowData);
+          }
         }
       });
       /** Αυτήν την μορφή θα έχουν οι πίνακες με την εκτέλεση του παραπάνω κώδικα μετά από διάβασμα ενός αρχείου excel
@@ -81,6 +130,7 @@ async function uploadFiles(files, user) {
 
       // Εδώ μπορείς να κάνεις ό,τι θέλεις:
       // - να τα αποθηκεύσεις στη βάση
+      //η μεταβλητή data εχει όλα τα δεδομένα
 
       // - να τα επεξεργαστείς μέσα από την βάση με την χρήση queries για μεγαλύτερη ταχύτητα
       // - κλπ
@@ -90,7 +140,7 @@ async function uploadFiles(files, user) {
         saveAs: file.filename,
         size: file.size,
         rows: data.length,
-        //data, //αν θες να επιστρέψεις και τα δεδομένα
+        data: data, //αν θες να επιστρέψεις και τα δεδομένα
       });
     } finally {
       await fs.unlink(file.path).catch(() => {});

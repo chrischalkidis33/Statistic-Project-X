@@ -5,7 +5,7 @@ import { API_URL } from "../config.js";
 // Το access token ζει μόνο στην μνήμη του module
 let accessToken = null;
 
-function getAccessToken() {
+export function getAccessToken() {
   return accessToken;
 }
 

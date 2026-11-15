@@ -9,6 +9,7 @@ export default function UploadFile({ isOpen, onClose }) {
   const [dataFile, setDataFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [result, setResult] = useState(null);
 
   //μέθοδος που αποθηκέυουμε το αρχείο στο state
   function handleFileUpload(e) {
@@ -25,7 +26,8 @@ export default function UploadFile({ isOpen, onClose }) {
     }
 
     try {
-      await uploadFiles(dataFile);
+      setResult(await uploadFiles(dataFile));
+      console.log(result);
       setMessage("Το αρχείο ανέβηκε με επιτυχία");
       setDataFile(null);
     } catch (error) {
@@ -154,7 +156,10 @@ export default function UploadFile({ isOpen, onClose }) {
           </button>
           <button
             className="upload__btn upload__btn--primary"
-            onClick={onFileUpload}
+            onClick={() => {
+              onFileUpload();
+              onClose();
+            }}
           >
             Upload
           </button>
