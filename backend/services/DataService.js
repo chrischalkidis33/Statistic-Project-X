@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import path from "path";
 import fs from "fs/promises";
+import { Pool } from "pg";
 import {
   insertData,
   totalRevenue,
@@ -145,9 +146,7 @@ async function uploadFiles(files, user, reportType) {
 
       //έλεγχος εάν το αρχείο περιέχει δεδομένα
       if (data.length === 0) {
-        throw new Error(
-          `Το αρχείο ${files.originalname} δεν περιέχει δεδομένα`,
-        );
+        throw new Error(`Το αρχείο ${file.originalname} δεν περιέχει δεδομένα`);
       }
 
       //Δημιουργία Transaction. Προσοχή θέλει await
