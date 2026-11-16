@@ -8,15 +8,24 @@ import {
   avgRevenueOrders,
   bestClient,
 } from "../utils/dataCalculation";
+import { throwDeprecation } from "process";
 
 /**
  * Επεξεργάζεται τα uploaded excel αρχεία
  * @param {Array} files - Τα αρχεία xlsx από το Multer(req.files)
  * @param {Object} user - ο χρήστης από το authMiddleware(req.user)
  */
-async function uploadFiles(files, user) {
+
+//ρύθμιση της σύνδεσης με την βάση postgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+async function uploadFiles(files, user, reportType) {
   const result = [];
   for (const file of files) {
+    let isTransactionStarted = false;
+    let client; // δηλώνετε έξω για να είναι προσβάσιμο από το catch
     try {
       //Διαβάζουμε το αρχείο excel
       const workbook = new ExcelJS.Workbook();
@@ -131,7 +140,43 @@ async function uploadFiles(files, user) {
       // Εδώ μπορείς να κάνεις ό,τι θέλεις:
       // - να τα αποθηκεύσεις στη βάση
       //η μεταβλητή data εχει όλα τα δεδομένα
+      //Καθαρισμός κενών θέσεων από τον πίνακα headers
+      const cleanHeaders = headers.filter(Boolean);
 
+      //έλεγχος εάν το αρχείο περιέχει δεδομένα
+      if (data.length === 0) {
+        throw new Error(
+          `Το αρχείο ${files.originalname} δεν περιέχει δεδομένα`,
+        );
+      }
+
+      //Δημιουργία Transaction. Προσοχή θέλει await
+      client = await pool.connect();
+      //1.1 Αποθήκευση στην βάση με transaction
+      await client.query("BEGIN");
+      isTransactionStarted = true;
+      //1.2 Εισαγωγή στον πίνακα file_uploads
+      const uploadRes = await client.query(
+        `
+        INSERT INTO file_uploads(user_id, file_name, report_type, detected_columns)
+        VALUES ($1,$2,$3,$4) RETURNING id
+        `,
+        [user.id, file.originalname, reportType, JSON.stringify(cleanHeaders)],
+      );
+      const uploadId = uploadRes.rows[0].id;
+
+      //Μαζική εισαγωγή των εγγραφών (Bulk Insert)
+      //Χρησιμοποιούμε το jsonb_array_elements της postgresql για να στείλουμε όλο το array με ένα query.
+      await client.query(
+        `INSERT INTO dynamic_erp_records (upload_id, user_id, row_data)
+        SELECT $1, $2, elem
+        FROM jsonb_array_elements($3::jsonb) AS elem`,
+        [uploadId, user.id, JSON.stringify(data)],
+      );
+
+      //κλέινουμε το transaction
+      await client.query("COMMIT");
+      isTransactionStarted = false;
       // - να τα επεξεργαστείς μέσα από την βάση με την χρήση queries για μεγαλύτερη ταχύτητα
       // - κλπ
 
@@ -142,8 +187,21 @@ async function uploadFiles(files, user) {
         rows: data.length,
         data: data, //αν θες να επιστρέψεις και τα δεδομένα
       });
+    } catch (error) {
+      if (client && isTransactionStarted) {
+        await client.query("ROLLBACK").catch((rbErr) => {
+          console.log("Σφάλμα κατά το ROLLBACK", rbErr);
+        });
+      }
+      //προωθούμε το σφάλμα πίσω στον controller data.js
+      throw error;
     } finally {
-      await fs.unlink(file.path).catch(() => {});
+      // Απελευθερώνουμε ΠΑΝΤΑ τη σύνδεση πίσω στο pool
+      if (client) {
+        client.release();
+      }
+      // Διαγράφουμε το προσωρινό αρχείο από τον δίσκο
+      if (file?.path) await fs.unlink(file.path).catch(() => {});
     }
   }
   return result;

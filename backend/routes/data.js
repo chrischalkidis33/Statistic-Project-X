@@ -59,7 +59,11 @@ dataRouter.post(
       }
 
       //καλούμε το service για την αποθήκευση των δεδομένω στην βάση και ολόκληρης της δουλειάς για τα δεδομένα
-      const result = await uploadFiles(req.files, req.user);
+      const result = await uploadFiles(
+        req.files,
+        req.user,
+        req.body.reportType || "general",
+      );
 
       //έλεγχος του αποτελέσματος
       if (result) {
