@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import path from "path";
 import fs from "fs/promises";
-import { Pool } from "pg";
+import pg from "pg";
 import {
   totalRevenue,
   sumOrder,
@@ -14,7 +14,7 @@ import {
  * @param {Array} files - Τα αρχεία xlsx από το Multer(req.files)
  * @param {Object} user - ο χρήστης από το authMiddleware(req.user)
  */
-
+const { Pool } = pg;
 //ρύθμιση της σύνδεσης με την βάση postgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -139,7 +139,7 @@ async function uploadFiles(files, user, reportType) {
         VALUES ($1,$2,$3,$4) RETURNING id
         `,
           [
-            user.id,
+            user.userId,
             file.originalname,
             reportType,
             JSON.stringify(cleanHeaders),
@@ -149,24 +149,38 @@ async function uploadFiles(files, user, reportType) {
 
         //Μαζική εισαγωγή των εγγραφών (Bulk Insert)
         //Χρησιμοποιούμε το jsonb_array_elements της postgresql για να στείλουμε όλο το array με ένα query.
-        await client.query(
+        const insertRes = await client.query(
           `INSERT INTO dynamic_erp_records (upload_id, user_id, row_data)
         SELECT $1, $2, elem
-        FROM jsonb_array_elements($3::jsonb) AS elem`,
-          [uploadId, user.id, JSON.stringify(data)],
+        FROM jsonb_array_elements($3::jsonb) AS elem
+        ON CONFLICT DO NOTHING`,
+          [uploadId, user.userId, JSON.stringify(data)],
         );
+        //υπολογισμός των εισαγόμενων εγγραφών χωρίς τις διπλότυπες για σωστό υπολογισμό των KPI's
+        const insertedRows = insertRes.rowCount;
+        const duplicateRows = data.length - insertedRows;
 
-        //κλέινουμε το transaction
-        await client.query("COMMIT");
-        isTransactionStarted = false;
-        // - να τα επεξεργαστείς μέσα από την βάση με την χρήση queries για μεγαλύτερη ταχύτητα
-        // - κλπ
+        if (insertedRows === 0) {
+          // Όλες οι γραμμές υπήρχαν ήδη -> ακυρώνουμε το άδειο entry στο file_uploads
+          await client.query("ROLLBACK");
+          isTransactionStarted = false;
+        } else {
+          //κλέινουμε το transaction
+          await client.query("COMMIT");
+          isTransactionStarted = false;
+        }
+
+        //αφού γίνει η φόρτωση των δεδομένων στην βάση μετά τρέζουμε τις μεθόδους για τα αποτελέσματα
+        const topClient = await bestClient(user, uploadId);
 
         result.push({
           originalName: file.originalname,
           saveAs: file.filename,
           size: file.size,
           rows: data.length,
+          topClient: topClient,
+          insertedRows: insertedRows,
+          duplicateRows: duplicateRows,
           data: data, //αν θες να επιστρέψεις και τα δεδομένα
         });
       } catch (error) {
@@ -195,6 +209,7 @@ async function uploadFiles(files, user, reportType) {
       }
     }
   }
+
   return result;
 }
 
