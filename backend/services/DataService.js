@@ -171,13 +171,15 @@ async function uploadFiles(files, user, reportType) {
         }
 
         //αφού γίνει η φόρτωση των δεδομένων στην βάση μετά τρέζουμε τις μεθόδους για τα αποτελέσματα
-        const topClient = await bestClient(user, uploadId);
+        const topClient = await bestClient(user);
+        const totalRev = await totalRevenue(user);
 
         result.push({
           originalName: file.originalname,
           saveAs: file.filename,
           size: file.size,
           rows: data.length,
+          totalRev: totalRev,
           topClient: topClient,
           insertedRows: insertedRows,
           duplicateRows: duplicateRows,
